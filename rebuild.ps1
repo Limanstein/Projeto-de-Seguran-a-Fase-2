@@ -1,2 +1,2 @@
-echo "Rebuilding"
+Write-Output "Rebuilding"
 javac -encoding UTF-8 server/MacManager.java server/PasswordManager.java server/CriarUser.java server/MySaudeServer.java client/MySaude.java client/CryptoUtils.java client/KeyUtils.java
