@@ -5,6 +5,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
 import javax.net.ssl.*;
 
 public class MySaudeServer {
@@ -101,10 +102,43 @@ public class MySaudeServer {
 
     private static void handleUpload(ObjectInputStream in, ObjectOutputStream out) {
         try {
-            String username = (String) in.readObject();
+            String username     = (String) in.readObject();
+            String password     = (String) in.readObject(); // PONTO F — password para autenticação
             String destinatario = (String) in.readObject();
-            String filename = (String) in.readObject();
-            long size = (long) in.readObject();
+            String filename     = (String) in.readObject();
+            long size           = (long)   in.readObject();
+
+            // -------------------------------------------------------
+            //  PONTO F — Autenticação
+            //  Verificar MAC antes de aceder ao ficheiro users
+            //  e autenticar o utilizador
+            // -------------------------------------------------------
+            try {
+                macManager.verificarAcesso(PasswordManager.USERS_FILE);
+            } catch (Exception e) {
+                out.writeObject("ERRO: Integridade do ficheiro de passwords comprometida.");
+                out.flush();
+                return;
+            }
+
+            if (!PasswordManager.autenticar(username, password)) {
+                out.writeObject("ERRO: Autenticação falhou para o utilizador '" + username + "'.");
+                out.flush();
+                System.out.println("UPLOAD recusado: autenticação falhou para '" + username + "'.");
+                return;
+            }
+
+            // -------------------------------------------------------
+            //  PONTO F — Controlo de acesso
+            //  Apenas utilizadores com função "medico" podem fazer UPLOAD
+            // -------------------------------------------------------
+            String funcao = PasswordManager.getFuncao(username);
+            if (!"medico".equals(funcao)) {
+                out.writeObject("ERRO: Acesso negado. Apenas utilizadores com função 'medico' podem enviar ficheiros.");
+                out.flush();
+                System.out.println("UPLOAD recusado: '" + username + "' tem função '" + funcao + "' (não é medico).");
+                return;
+            }
 
             File userDir = new File("server_storage/" + destinatario);
             if (!userDir.exists()) userDir.mkdirs();
@@ -171,10 +205,31 @@ public class MySaudeServer {
 
     private static void handleDownload(ObjectInputStream in, ObjectOutputStream out) {
         try {
-            String destinatario = (String) in.readObject();
-            String filename = (String) in.readObject();
+            String username  = (String) in.readObject();
+            String password  = (String) in.readObject(); // PONTO F — password para autenticação
+            String filename  = (String) in.readObject();
 
-            File file = new File("server_storage/" + destinatario + "/" + filename);
+            // -------------------------------------------------------
+            //  PONTO F — Autenticação
+            //  Qualquer utilizador autenticado pode fazer DOWNLOAD
+            // -------------------------------------------------------
+            try {
+                macManager.verificarAcesso(PasswordManager.USERS_FILE);
+            } catch (Exception e) {
+                out.writeObject("ERRO_AUTH");
+                out.flush();
+                return;
+            }
+
+            if (!PasswordManager.autenticar(username, password)) {
+                out.writeObject("ERRO_AUTH");
+                out.flush();
+                System.out.println("DOWNLOAD recusado: autenticação falhou para '" + username + "'.");
+                return;
+            }
+
+            // O destinatário do DOWNLOAD é o próprio utilizador autenticado
+            File file = new File("server_storage/" + username + "/" + filename);
 
             if (!file.exists()) {
                 out.writeObject("NOT_FOUND");
@@ -199,7 +254,7 @@ public class MySaudeServer {
             out.flush(); // ESSENCIAL
             fis.close();
 
-            System.out.println("DOWNLOAD de " + filename + " para " + destinatario);
+            System.out.println("DOWNLOAD de " + filename + " para " + username);
 
         } catch (Exception e) {
             System.out.println("Erro no download: " + e.getMessage());

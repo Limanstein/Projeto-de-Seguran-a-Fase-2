@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import javax.net.ssl.*;
 
 public class MySaude {
 
@@ -13,8 +14,8 @@ public class MySaude {
         Map<String, List<String>> options = parseArgs(args);
 
         if (options.containsKey("-e")) {
-            if (!options.containsKey("-s") || !options.containsKey("-u") || !options.containsKey("-t")) {
-                System.out.println("Erro: falta -s <host:port>, -u <username> ou -t <destinatario>");
+            if (!options.containsKey("-s") || !options.containsKey("-u") || !options.containsKey("-p") || !options.containsKey("-t")) {
+                System.out.println("Erro: falta -s <host:port>, -u <username>, -p <password> ou -t <destinatario>");
                 return;
             }
 
@@ -23,11 +24,12 @@ public class MySaude {
             String host = parts[0];
             int port = Integer.parseInt(parts[1]);
             String username = options.get("-u").get(0);
+            String password = options.get("-p").get(0);
             String destinatario = options.get("-t").get(0);
 
             for (String ficheiro : options.get("-e")) {
-                // O método uploadFile já trata a verificação de existência local e erros do servidor
-                uploadFile(host, port, username, destinatario, ficheiro);
+                // PONTO F — passa password para autenticação no servidor
+                uploadFile(host, port, username, password, destinatario, ficheiro);
             }
             return;
         }
@@ -36,8 +38,8 @@ public class MySaude {
         //  PONTO 2 — RECEBER FICHEIROS SIMPLES (-r)
         // ---------------------------------------------------------
         if (options.containsKey("-r")) {
-            if (!options.containsKey("-s") || !options.containsKey("-u")) {
-                System.out.println("Erro: falta -s <host:port> ou -u <username>");
+            if (!options.containsKey("-s") || !options.containsKey("-u") || !options.containsKey("-p")) {
+                System.out.println("Erro: falta -s <host:port>, -u <username> ou -p <password>");
                 return;
             }
 
@@ -46,9 +48,11 @@ public class MySaude {
             String host = parts[0];
             int port = Integer.parseInt(parts[1]);
             String username = options.get("-u").get(0);
+            String password = options.get("-p").get(0);
 
             for (String ficheiro : options.get("-r")) {
-                downloadFile(host, port, username, ficheiro);
+                // PONTO F — passa password para autenticação no servidor
+                downloadFile(host, port, username, password, ficheiro);
             }
             return;
         }
@@ -235,8 +239,8 @@ public class MySaude {
                                               destinatario, keystorePath, ksPass,
                                               host, port);
 
-                    uploadFile(host, port, username, destinatario, cifrado);
-                    uploadFile(host, port, username, destinatario, chave);
+                    uploadFile(host, port, username, password, destinatario, cifrado);
+                    uploadFile(host, port, username, password, destinatario, chave);
 
                     System.out.println("Enviado (ce): " + ficheiro);
 
@@ -270,8 +274,8 @@ public class MySaude {
                 String decifrado = ficheiro + ".decifrado";
 
                 try {
-                    if (!downloadFile(host, port, username, cifrado)) continue;
-                    if (!downloadFile(host, port, username, chave)) continue;
+                    if (!downloadFile(host, port, username, password, cifrado)) continue;
+                    if (!downloadFile(host, port, username, password, chave)) continue;
 
                     CryptoUtils.decryptHybrid("recebido_" + cifrado,
                                               "recebido_" + chave,
@@ -332,9 +336,9 @@ public class MySaude {
                     );
 
                     // 3. Enviar os 3 ficheiros
-                    uploadFile(host, port, username, destinatario, cifrado);
-                    uploadFile(host, port, username, destinatario, chave);
-                    uploadFile(host, port, username, destinatario, assinatura);
+                    uploadFile(host, port, username, password, destinatario, cifrado);
+                    uploadFile(host, port, username, password, destinatario, chave);
+                    uploadFile(host, port, username, password, destinatario, assinatura);
 
                     System.out.println("Enviado (ae): " + ficheiro);
 
@@ -370,9 +374,9 @@ public class MySaude {
 
                 try {
                     // 1. Fazer download dos 3 ficheiros
-                    if (!downloadFile(host, port, username, cifrado)) continue;
-                    if (!downloadFile(host, port, username, chave)) continue;
-                    if (!downloadFile(host, port, username, assinatura)) continue;
+                    if (!downloadFile(host, port, username, password, cifrado)) continue;
+                    if (!downloadFile(host, port, username, password, chave)) continue;
+                    if (!downloadFile(host, port, username, password, assinatura)) continue;
 
                     // 2. Decifrar o ficheiro
                     String decifrado = ficheiro + ".decifrado";
@@ -440,9 +444,9 @@ public class MySaude {
                                                destinatario, keystorePath, ksPass,
                                                host, port);
 
-                    if (!uploadFile(host, port, username, destinatario, envelope)) return;
-                    if (!uploadFile(host, port, username, destinatario, chave)) return;
-                    if (!uploadFile(host, port, username, destinatario, assinatura)) return;
+                    if (!uploadFile(host, port, username, password, destinatario, envelope)) return;
+                    if (!uploadFile(host, port, username, password, destinatario, chave)) return;
+                    if (!uploadFile(host, port, username, password, destinatario, assinatura)) return;
 
                     System.out.println("Enviado (ace): " + ficheiro);
 
@@ -478,9 +482,9 @@ public class MySaude {
                 String decifrado = ficheiro + ".decifrado";
 
                 try {
-                    if (!downloadFile(host, port, username, envelope)) continue;
-                    if (!downloadFile(host, port, username, chave)) continue;
-                    if (!downloadFile(host, port, username, assinatura)) continue;
+                    if (!downloadFile(host, port, username, password, envelope)) continue;
+                    if (!downloadFile(host, port, username, password, chave)) continue;
+                    if (!downloadFile(host, port, username, password, assinatura)) continue;
 
                     CryptoUtils.openEnvelope("recebido_" + envelope,
                                              "recebido_" + chave,
@@ -529,8 +533,7 @@ public class MySaude {
     // ============================================================
     //  UPLOAD
     // ============================================================
-    // Altera o retorno para boolean
-    private static boolean uploadFile(String host, int port, String username, String destinatario, String filename) {
+    private static boolean uploadFile(String host, int port, String username, String password, String destinatario, String filename) {
         try {
             File file = new File(filename);
             if (!file.exists()) {
@@ -538,12 +541,15 @@ public class MySaude {
                 return false;
             }
 
-            Socket socket = new Socket(host, port);
+            // PONTO D — Canal seguro TLS
+            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            Socket socket = sf.createSocket(host, port);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
             out.writeObject("UPLOAD");
             out.writeObject(username);
+            out.writeObject(password); // PONTO F — enviar password para autenticação no servidor
             out.writeObject(destinatario);
             out.writeObject(file.getName());
             out.writeObject(file.length());
@@ -574,19 +580,28 @@ public class MySaude {
     // ============================================================
     //  DOWNLOAD
     // ============================================================
-    private static boolean downloadFile(String host, int port, String username, String filename) {
+    private static boolean downloadFile(String host, int port, String username, String password, String filename) {
         try {
-            Socket socket = new Socket(host, port);
+            // PONTO D — Canal seguro TLS
+            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
+            Socket socket = sf.createSocket(host, port);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
             out.writeObject("DOWNLOAD");
             out.writeObject(username);
+            out.writeObject(password); // PONTO F — enviar password para autenticação no servidor
             out.writeObject(filename);
             out.flush();
 
             String status = (String) in.readObject();
+
+            if (status.equals("ERRO_AUTH")) {
+                System.out.println("DOWNLOAD " + filename + ": Erro: autenticação falhou.");
+                socket.close();
+                return false;
+            }
 
             if (status.equals("NOT_FOUND")) {
                 System.out.println("DOWNLOAD " + filename + ": ficheiro não encontrado no servidor.");
