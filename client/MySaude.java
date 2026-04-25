@@ -4,7 +4,6 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import javax.net.ssl.*;
 
 public class MySaude {
 
@@ -12,23 +11,6 @@ public class MySaude {
         System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
 
         Map<String, List<String>> options = parseArgs(args);
-
-        // -------------------------------------------------------
-        //  PONTO D — Canal seguro TLS
-        //  Configurar a truststore do cliente com o certificado do servidor.
-        //  Obrigatório para que o SSLSocket consiga verificar o servidor.
-        //  Uso: -ts <truststore> <passwordTruststore>
-        //  Exemplo: -ts truststore.client 123456
-        // -------------------------------------------------------
-        if (options.containsKey("-ts")) {
-            List<String> tsArgs = options.get("-ts");
-            if (tsArgs.size() < 2) {
-                System.out.println("Erro: -ts requer <truststore> <password>");
-                return;
-            }
-            System.setProperty("javax.net.ssl.trustStore", tsArgs.get(0));
-            System.setProperty("javax.net.ssl.trustStorePassword", tsArgs.get(1));
-        }
 
         if (options.containsKey("-e")) {
             if (!options.containsKey("-s") || !options.containsKey("-u") || !options.containsKey("-t")) {
@@ -248,8 +230,10 @@ public class MySaude {
                 String chave = ficheiro + ".chave." + destinatario;
 
                 try {
+                    // PONTO E — passa host e port para fetch automático de certificado
                     CryptoUtils.encryptHybrid(ficheiro, cifrado, chave,
-                                              destinatario, keystorePath, ksPass);
+                                              destinatario, keystorePath, ksPass,
+                                              host, port);
 
                     uploadFile(host, port, username, destinatario, cifrado);
                     uploadFile(host, port, username, destinatario, chave);
@@ -336,14 +320,15 @@ public class MySaude {
                         ksPass
                     );
 
-                    // 2. Cifrar o ficheiro (igual ao -ce)
+                    // 2. Cifrar o ficheiro (igual ao -ce) — PONTO E: fetch automático
                     CryptoUtils.encryptHybrid(
                         ficheiro,
                         cifrado,
                         chave,
                         destinatario,
                         keystorePath,
-                        ksPass
+                        ksPass,
+                        host, port
                     );
 
                     // 3. Enviar os 3 ficheiros
@@ -400,13 +385,14 @@ public class MySaude {
                         ksPass
                     );
 
-                    // 3. Validar a assinatura
+                    // 3. Validar a assinatura — PONTO E: fetch automático do certificado
                     boolean ok = CryptoUtils.verifyFileKeystore(
                         decifrado,
                         "recebido_" + assinatura,
                         quemAssinou,
                         keystorePath,
-                        ksPass
+                        ksPass,
+                        host, port
                     );
 
                     if (ok)
@@ -449,8 +435,10 @@ public class MySaude {
                     CryptoUtils.signFileKeystore(ficheiro, assinatura,
                                                  username, keystorePath, ksPass);
 
+                    // PONTO E — fetch automático do certificado do destinatário
                     CryptoUtils.createEnvelope(ficheiro, envelope, chave,
-                                               destinatario, keystorePath, ksPass);
+                                               destinatario, keystorePath, ksPass,
+                                               host, port);
 
                     if (!uploadFile(host, port, username, destinatario, envelope)) return;
                     if (!uploadFile(host, port, username, destinatario, chave)) return;
@@ -504,7 +492,8 @@ public class MySaude {
                         "recebido_" + assinatura,
                         quemAssinou,
                         keystorePath,
-                        ksPass
+                        ksPass,
+                        host, port
                     );
 
                     if (ok)
@@ -549,11 +538,7 @@ public class MySaude {
                 return false;
             }
 
-            // PONTO D — Canal seguro TLS
-            // A truststore do cliente (com o certificado do servidor) é configurada
-            // via System.setProperty antes de chamar este método (no main).
-            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            Socket socket = sf.createSocket(host, port);
+            Socket socket = new Socket(host, port);
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
@@ -591,9 +576,7 @@ public class MySaude {
     // ============================================================
     private static boolean downloadFile(String host, int port, String username, String filename) {
         try {
-            // PONTO D — Canal seguro TLS
-            SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
-            Socket socket = sf.createSocket(host, port);
+            Socket socket = new Socket(host, port);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());

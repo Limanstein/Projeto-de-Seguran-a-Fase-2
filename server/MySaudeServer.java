@@ -3,6 +3,8 @@ package server;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.cert.Certificate;
 import javax.net.ssl.*;
 
 public class MySaudeServer {
@@ -37,14 +39,10 @@ public class MySaudeServer {
         }
 
         macManager = new MacManager(macPassword);
-        // Verifica o MAC no arranque — termina o servidor se estiver errado
         macManager.verificarArranque(PasswordManager.USERS_FILE);
 
         // -------------------------------------------------------
         //  PONTO D — Canal seguro TLS
-        //  O servidor usa a sua keystore para se autenticar ao cliente.
-        //  O cliente verifica o certificado do servidor através da sua truststore.
-        //  (autenticação one-way: apenas o servidor se autentica via TLS)
         // -------------------------------------------------------
         System.setProperty("javax.net.ssl.keyStore", keystorePath);
         System.setProperty("javax.net.ssl.keyStorePassword", keystorePass);
@@ -84,6 +82,12 @@ public class MySaudeServer {
                     handleDownload(in, out);
                     break;
 
+                // PONTO E — Gestão de certificados
+                // O cliente pede o certificado de um utilizador que não tem na sua keystore
+                case "GET_CERT":
+                    handleGetCert(in, out);
+                    break;
+
                 default:
                     System.out.println("Comando desconhecido: " + command);
             }
@@ -97,10 +101,10 @@ public class MySaudeServer {
 
     private static void handleUpload(ObjectInputStream in, ObjectOutputStream out) {
         try {
-            String username     = (String) in.readObject();
+            String username = (String) in.readObject();
             String destinatario = (String) in.readObject();
-            String filename     = (String) in.readObject();
-            long size           = (long) in.readObject();
+            String filename = (String) in.readObject();
+            long size = (long) in.readObject();
 
             File userDir = new File("server_storage/" + destinatario);
             if (!userDir.exists()) userDir.mkdirs();
@@ -109,13 +113,13 @@ public class MySaudeServer {
             // Usamos um regex que remove apenas as extensões finais de segurança
             String baseName = filename.replaceAll("\\.(cifrado|assinatura|envelope|assinado|chave).*$", "");
 
-            // 2. Definir os tipos de ficheiros "principais" que não podem coexistir
+            // 2. Definir os tipos de ficheiros "principais" que não podem coexistir (Ponto 7, Obs 106)
             // aa.pdf, aa.pdf.cifrado, aa.pdf.assinado e aa.pdf.envelope são mutuamente exclusivos
             String[] mainTypes = {"", ".cifrado", ".assinado", ".envelope"};
 
             // 3. Determinar o tipo do ficheiro que está a entrar agora
             String incomingType = "";
-            if (filename.endsWith(".cifrado"))       incomingType = ".cifrado";
+            if (filename.endsWith(".cifrado")) incomingType = ".cifrado";
             else if (filename.endsWith(".assinado")) incomingType = ".assinado";
             else if (filename.endsWith(".envelope")) incomingType = ".envelope";
 
@@ -168,7 +172,7 @@ public class MySaudeServer {
     private static void handleDownload(ObjectInputStream in, ObjectOutputStream out) {
         try {
             String destinatario = (String) in.readObject();
-            String filename     = (String) in.readObject();
+            String filename = (String) in.readObject();
 
             File file = new File("server_storage/" + destinatario + "/" + filename);
 
@@ -199,6 +203,51 @@ public class MySaudeServer {
 
         } catch (Exception e) {
             System.out.println("Erro no download: " + e.getMessage());
+        }
+    }
+
+    // ============================================================
+    //  PONTO E — ENVIAR CERTIFICADO DE UTILIZADOR AO CLIENTE
+    // ============================================================
+    // O cliente envia o username de quem quer o certificado.
+    // O servidor procura na keystore.users e devolve os bytes do certificado.
+    // Se não existir, devolve "NOT_FOUND".
+    private static void handleGetCert(ObjectInputStream in, ObjectOutputStream out) {
+        try {
+            String username = (String) in.readObject();
+
+            File ksFile = new File(CriarUser.KEYSTORE_USERS);
+            if (!ksFile.exists()) {
+                out.writeObject("NOT_FOUND");
+                out.flush();
+                return;
+            }
+
+            KeyStore ks = KeyStore.getInstance("JKS");
+            try (FileInputStream fis = new FileInputStream(ksFile)) {
+                ks.load(fis, CriarUser.KEYSTORE_USERS_PASS.toCharArray());
+            }
+
+            Certificate cert = ks.getCertificate(username);
+            if (cert == null) {
+                out.writeObject("NOT_FOUND");
+                out.flush();
+                System.out.println("GET_CERT: certificado de '" + username + "' não encontrado.");
+                return;
+            }
+
+            // Serializar o certificado para bytes (formato X.509 standard)
+            byte[] certBytes = cert.getEncoded();
+
+            out.writeObject("OK");
+            out.writeObject(certBytes);
+            out.flush();
+
+            System.out.println("GET_CERT: certificado de '" + username + "' enviado ao cliente.");
+
+        } catch (Exception e) {
+            try { out.writeObject("NOT_FOUND"); out.flush(); } catch (Exception ignored) {}
+            System.out.println("Erro no GET_CERT: " + e.getMessage());
         }
     }
 }
