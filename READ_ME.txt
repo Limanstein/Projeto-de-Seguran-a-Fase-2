@@ -36,17 +36,13 @@ NOTA: O keystore.afonso serve de truststore nos clientes porque o servidor
 IMPORTANTE: Para correr scripts .ps1 fazer:   .\nome_do_script.ps1
             Se nao correr, executar primeiro:  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-PASSO 1 — No PC SERVIDOR, compilar:
-    .\rebuild.ps1
+PASSO 1 — No PC SERVIDOR, correr o script de preparacao:
+    .\preparar_servidor.ps1
+    (faz tudo: compila, cria chaves, cria utilizadores, arranca o servidor)
+    (insere a password de MAC automaticamente: macpassword123)
+    (NO FINAL mostra os ficheiros a copiar para cada cliente e arranca o servidor)
 
-PASSO 2 — No PC SERVIDOR, criar keystores e certificados:
-    .\criar_keys.ps1
-
-PASSO 3 — No PC SERVIDOR, criar os utilizadores no sistema:
-    .\criar_users.ps1
-    (inserir a password de MAC quando pedido: macpassword123)
-
-PASSO 4 — Copiar ficheiros para os PCs CLIENTE (via pen drive ou rede):
+PASSO 2 — Copiar para os PCs CLIENTE (via pen drive ou rede):
 
     Para PC CLIENTE 1 (Lima):
         keystore.afonso   <- truststore TLS
@@ -58,39 +54,38 @@ PASSO 4 — Copiar ficheiros para os PCs CLIENTE (via pen drive ou rede):
         keystore.duarte   <- keystore do utilizador Duarte
         pasta client/     <- codigo compilado
 
-PASSO 5 — No PC SERVIDOR, arrancar o servidor:
-    .\server.ps1
-    (inserir a password de MAC quando pedido: macpassword123)
+PASSO 3 — Em cada PC CLIENTE, correr o script de preparacao:
+    .\preparar_cliente.ps1
+    (verifica ficheiros, compila se necessario, cria ficheiro de teste)
+    (mostra automaticamente os comandos prontos para esse utilizador)
 
-PASSO 6 — Nos PCs CLIENTE, correr os testes:
+PASSO 4 — Nos PCs CLIENTE, correr os testes (alterar IP_SERVIDOR):
 
-    IMPORTANTE: Alterar o IP do servidor no script de testes antes de correr!
-    Abrir testes_fase2.ps1 e alterar a linha:
+    .\testes_fase1.ps1   (operacoes locais, sem servidor)
+
+    Abrir testes_fase2.ps1, alterar a linha:
         $S = "localhost:8080"   ->   $S = "IP_DO_SERVIDOR:8080"
-
-    Exemplo se o IP do servidor for 192.168.1.10:
-        $S = "192.168.1.10:8080"
-
     Depois correr:
-        .\testes_fase1.ps1   (operacoes locais, sem servidor)
-        .\testes_fase2.ps1   (operacoes com servidor)
+    .\testes_fase2.ps1   (operacoes com servidor)
 
-PASSO 7 — No final, limpar tudo:
+PASSO 5 — No final, limpar tudo (no servidor):
     .\limpeza.ps1
 
 --- DESCRICAO DOS SCRIPTS ---
 
-    rebuild.ps1      - Recompila todos os ficheiros .java (server + client)
-    limpeza.ps1      - Limpa keystores, certificados, ficheiros gerados e server_storage
-                       (tambem para o servidor se estiver a correr na porta 8080)
-    criar_keys.ps1   - Cria keystores RSA-2048 e certificados para todos os utilizadores
-                       e importa as relacoes de confianca necessarias
-    criar_users.ps1  - Regista os utilizadores no servidor (ficheiro users + MAC)
-                       Requer que criar_keys.ps1 tenha sido executado antes
-    server.ps1       - Inicia o servidor TLS na porta 8080
-    testes_fase1.ps1 - Testa as operacoes locais sem servidor (-c, -d, -a, -v)
-    testes_fase2.ps1 - Testa todas as funcionalidades com servidor
-                       (autenticacao, MAC, TLS, certificados, operacoes combinadas)
+    preparar_servidor.ps1 - NOVO: faz tudo no servidor de uma vez
+                            (compila + chaves + utilizadores + arranca servidor)
+    preparar_cliente.ps1  - NOVO: faz tudo no cliente de uma vez
+                            (verifica ficheiros + compila + cria teste + mostra comandos)
+    rebuild.ps1           - Recompila todos os ficheiros .java (server + client)
+    limpeza.ps1           - Limpa keystores, certificados, ficheiros gerados e server_storage
+                            (tambem para o servidor se estiver a correr na porta 8080)
+    criar_keys.ps1        - Cria keystores RSA-2048 e certificados (usado pelo preparar_servidor)
+    criar_users.ps1       - Regista os utilizadores no servidor (usado pelo preparar_servidor)
+    server.ps1            - Inicia o servidor TLS na porta 8080 (separado, se necessario)
+    testes_fase1.ps1      - Testa as operacoes locais sem servidor (-c, -d, -a, -v)
+    testes_fase2.ps1      - Testa todas as funcionalidades com servidor
+                            (autenticacao, MAC, TLS, certificados, operacoes combinadas)
 
 
 ================================================================================
