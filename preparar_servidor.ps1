@@ -106,10 +106,12 @@ Write-Host ""
 Write-Host "  Depois de copiar, correr preparar_cliente.ps1 em cada cliente." -ForegroundColor Yellow
 Write-Host ""
 
-$serverIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress
+$ips = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" }
 Write-Host "============================================================" -ForegroundColor Yellow
-Write-Host "  IP DESTE SERVIDOR: $serverIP" -ForegroundColor Yellow
-Write-Host "  Os clientes precisam deste IP para ligar ao servidor." -ForegroundColor Yellow
+Write-Host "  IPs DESTE SERVIDOR (usar um destes nos clientes):" -ForegroundColor Yellow
+foreach ($ip in $ips) {
+    Write-Host ("    " + $ip.IPAddress + "  (" + $ip.InterfaceAlias + ")") -ForegroundColor Yellow
+}
 Write-Host "============================================================" -ForegroundColor Yellow
 Write-Host ""
 

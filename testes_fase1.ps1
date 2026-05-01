@@ -1,14 +1,14 @@
 # =============================================================
-# TESTES FASE 1 - Operações Locais (sem servidor)
+# TESTES FASE 1 - Operacoes Locais (sem servidor)
 # =============================================================
-# Testa as operações criptográficas que funcionam localmente:
+# Testa as operacoes criptograficas que funcionam localmente:
 #   -c  Cifrar ficheiro (AES/CBC + RSA)
 #   -d  Decifrar ficheiro
 #   -a  Assinar ficheiro (RSA/SHA-256)
 #   -v  Verificar assinatura
 #
-# Pré-requisito: criar_keys.ps1 já executado (keystores criados).
-# NÃO precisa do servidor a correr.
+# Pre-requisito: criar_keys.ps1 ja executado (keystores criados).
+# NAO precisa do servidor a correr.
 # =============================================================
 
 $OutputEncoding = [Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -21,19 +21,13 @@ function Pausa($msg) {
     Read-Host | Out-Null
 }
 
-function Resultado($esperado) {
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "  => OK ($esperado)" -ForegroundColor Green
-    } else {
-        Write-Host "  => FALHOU (esperado: $esperado)" -ForegroundColor Red
-    }
+# Criar ficheiro de teste
+if (-not (Test-Path "ficheiro_teste_f1.pdf")) {
+    "Conteudo de teste - Fase 1" | Out-File -Encoding UTF8 "ficheiro_teste_f1.pdf"
 }
 
-# Criar ficheiros de teste
-if (-not (Test-Path "ficheiro_teste_f1.pdf")) { "Conteudo de teste - Fase 1" | Out-File -Encoding UTF8 "ficheiro_teste_f1.pdf" }
-
 Write-Host "`n======================================================" -ForegroundColor Cyan
-Write-Host " TESTES FASE 1 - Operações Locais" -ForegroundColor Cyan
+Write-Host " TESTES FASE 1 - Operacoes Locais" -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 
 
@@ -50,12 +44,12 @@ Write-Host "`n[1b] Afonso decifra o ficheiro cifrado (-d):" -ForegroundColor Whi
 java client.MySaude -u afonso -p $PASS -d ficheiro_teste_f1.pdf.cifrado
 
 Write-Host "`n[1c] Verificar integridade (decifrado == original):" -ForegroundColor White
-$orig     = Get-Content "ficheiro_teste_f1.pdf"    -Raw
+$orig      = Get-Content "ficheiro_teste_f1.pdf" -Raw
 $decifrado = Get-Content "ficheiro_teste_f1.pdf.decifrado" -Raw -ErrorAction SilentlyContinue
 if ($orig -eq $decifrado) {
-    Write-Host "  => PASSOU: conteúdo decifrado é idêntico ao original." -ForegroundColor Green
+    Write-Host "  => PASSOU: conteudo decifrado identico ao original." -ForegroundColor Green
 } else {
-    Write-Host "  => FALHOU: conteúdo diferente após decifração!" -ForegroundColor Red
+    Write-Host "  => FALHOU: conteudo diferente apos decifracao!" -ForegroundColor Red
 }
 
 
@@ -71,12 +65,12 @@ java client.MySaude -u duarte -p $PASS -a ficheiro_teste_f1.pdf
 Write-Host "`n[2b] Afonso verifica a assinatura de Duarte (-v):" -ForegroundColor White
 java client.MySaude -u afonso -p $PASS -t duarte -v ficheiro_teste_f1.pdf
 
-Write-Host "`n[2c] Afonso verifica assinatura de Lima (Lima não assinou - esperado INVÁLIDA):" -ForegroundColor White
+Write-Host "`n[2c] Afonso verifica assinatura de Lima (Lima nao assinou - esperado INVALIDA):" -ForegroundColor White
 java client.MySaude -u afonso -p $PASS -t lima -v ficheiro_teste_f1.pdf
 
 
 # =============================================================
-# TESTE 3: Erros de autenticação local
+# TESTE 3: Erros
 # =============================================================
 Pausa "TESTE 3 - Erros (password errada / utilizador sem keystore)"
 
@@ -86,8 +80,8 @@ java client.MySaude -u afonso -p SENHA_ERRADA -a ficheiro_teste_f1.pdf
 Write-Host "`n[3b] Utilizador sem keystore ('fantasma') - deve falhar:" -ForegroundColor White
 java client.MySaude -u fantasma -p $PASS -a ficheiro_teste_f1.pdf
 
-Write-Host "`n[3c] Lima tenta cifrar para Alexandre (sem certificado local, sem servidor):" -ForegroundColor White
-Write-Host "     (esperado: erro - certificado não encontrado)" -ForegroundColor DarkYellow
+Write-Host "`n[3c] Lima tenta cifrar para Alexandre sem servidor (sem cert local):" -ForegroundColor White
+Write-Host "     (esperado: erro - certificado nao encontrado)" -ForegroundColor DarkYellow
 java client.MySaude -u lima -p $PASS -t alexandre -c ficheiro_teste_f1.pdf
 
 
@@ -95,7 +89,7 @@ java client.MySaude -u lima -p $PASS -t alexandre -c ficheiro_teste_f1.pdf
 # RESUMO
 # =============================================================
 Write-Host "`n======================================================" -ForegroundColor Cyan
-Write-Host " TESTES FASE 1 CONCLUÍDOS" -ForegroundColor Cyan
+Write-Host " TESTES FASE 1 CONCLUIDOS" -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 Write-Host "Ficheiros gerados:" -ForegroundColor White
 Get-ChildItem "ficheiro_teste_f1.pdf*" | ForEach-Object { Write-Host "  $($_.Name)" }
