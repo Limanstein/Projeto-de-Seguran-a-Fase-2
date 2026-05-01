@@ -122,28 +122,28 @@ Write-Host ""
 Write-Host "  Substituir $ipServidor pelo IP real do servidor." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  Enviar ficheiro simples para $outro (-e):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -e teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -e teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Receber ficheiro simples (-r):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -r teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -r teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Cifrar e enviar para $outro (-ce):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -ce teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -ce teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Receber e decifrar (-rd):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -rd teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -rd teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Assinar, cifrar e enviar para $outro (-ae):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -ae teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -ae teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Receber, decifrar e verificar assinatura de $outro (-rv):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -rv teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -rv teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Envelope seguro enviar para $outro (-ace):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -ace teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -ace teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Envelope seguro receber de $outro (-rdv):" -ForegroundColor White
-Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s $ipServidor:8080 -u $user -p $PASS -t $outro -rdv teste.txt" -ForegroundColor DarkCyan
+Write-Host "    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=$PASS client.MySaude -s ${ipServidor}:8080 -u $user -p $PASS -t $outro -rdv teste.txt" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "  Assinar localmente sem servidor (-a):" -ForegroundColor White
 Write-Host "    java client.MySaude -u $user -p $PASS -a teste.txt" -ForegroundColor DarkCyan
