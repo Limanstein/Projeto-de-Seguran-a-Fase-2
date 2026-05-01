@@ -114,51 +114,62 @@ Write-Host "  Criado: teste.txt" -ForegroundColor Green
 
 
 # =============================================================
-# COMANDOS PRONTOS A USAR
+# GERAR SCRIPT demo.ps1 COM OS COMANDOS PRONTOS A EXECUTAR
 # =============================================================
-$tls  = "-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=" + $PASS
-$base = "java " + $tls + " client.MySaude -s " + $servidor + " -u " + $user + " -p " + $PASS
+$demo = @"
+`$PASS  = "$PASS"
+`$user  = "$user"
+`$outro = "$outro"
+`$S     = "$servidor"
+`$JVM   = "-Djavax.net.ssl.trustStore=keystore.afonso", "-Djavax.net.ssl.trustStorePassword=`$PASS"
+
+function Pausa(`$msg) {
+    Write-Host ""
+    Write-Host ">>> Prima ENTER para: `$msg" -ForegroundColor Yellow
+    Read-Host | Out-Null
+}
+
+Pausa "Enviar ficheiro simples para `$outro (-e)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -e teste.txt
+
+Pausa "Receber ficheiro simples (-r)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -r teste.txt
+
+Pausa "Cifrar e enviar para `$outro (-ce)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -ce teste.txt
+
+Pausa "Receber e decifrar (-rd)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -rd teste.txt
+
+Pausa "Assinar, cifrar e enviar para `$outro (-ae)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -ae teste.txt
+
+Pausa "Receber, decifrar e verificar assinatura de `$outro (-rv)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -rv teste.txt
+
+Pausa "Envelope seguro - enviar para `$outro (-ace)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -ace teste.txt
+
+Pausa "Envelope seguro - receber de `$outro (-rdv)"
+java `$JVM client.MySaude -s `$S -u `$user -p `$PASS -t `$outro -rdv teste.txt
+
+Pausa "Assinar localmente sem servidor (-a)"
+java client.MySaude -u `$user -p `$PASS -a teste.txt
+
+Write-Host ""
+Write-Host "Demo concluida." -ForegroundColor Green
+"@
+
+$demo | Out-File -Encoding UTF8 "demo.ps1"
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "  CLIENTE PRONTO - $user" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host ""
-
-Write-Host "  Enviar ficheiro simples para $outro (-e):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -e teste.txt") -ForegroundColor DarkCyan
+Write-Host "  Script de demo gerado: demo.ps1" -ForegroundColor Yellow
 Write-Host ""
-
-Write-Host "  Receber ficheiro simples (-r):" -ForegroundColor White
-Write-Host ("    " + $base + " -r teste.txt") -ForegroundColor DarkCyan
+Write-Host "  Para correr a demo:" -ForegroundColor White
+Write-Host "    .\demo.ps1" -ForegroundColor Cyan
 Write-Host ""
-
-Write-Host "  Cifrar e enviar para $outro (-ce):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -ce teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Receber e decifrar (-rd):" -ForegroundColor White
-Write-Host ("    " + $base + " -rd teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Assinar, cifrar e enviar para $outro (-ae):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -ae teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Receber, decifrar e verificar assinatura de $outro (-rv):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -rv teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Envelope seguro enviar para $outro (-ace):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -ace teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Envelope seguro receber de $outro (-rdv):" -ForegroundColor White
-Write-Host ("    " + $base + " -t " + $outro + " -rdv teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
-Write-Host "  Assinar localmente sem servidor (-a):" -ForegroundColor White
-Write-Host ("    java client.MySaude -u " + $user + " -p " + $PASS + " -a teste.txt") -ForegroundColor DarkCyan
-Write-Host ""
-
 Write-Host "============================================================" -ForegroundColor Cyan
