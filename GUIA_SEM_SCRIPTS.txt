@@ -1,0 +1,265 @@
+================================================================================
+GUIA PASSO A PASSO SEM SCRIPTS — 3 MAQUINAS
+================================================================================
+
+Substituir IP_SERVIDOR pelo IP real do servidor em todos os comandos.
+Para ver o IP do servidor:   ipconfig   (Windows)
+
+--------------------------------------------------------------------------------
+NOTA SOBRE OS COMANDOS COM TLS
+--------------------------------------------------------------------------------
+
+Os comandos que contactam o servidor precisam de flags TLS. Para evitar
+problemas ao copiar comandos longos, definir esta variavel de ambiente
+UMA UNICA VEZ no inicio de cada sessao de terminal no PC cliente:
+
+    $env:_JAVA_OPTIONS = "-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+Depois disso todos os comandos java ja incluem as flags automaticamente.
+
+
+================================================================================
+PC SERVIDOR — TODOS OS COMANDOS (por ordem)
+================================================================================
+
+--- COMPILAR ---
+
+javac -encoding UTF-8 server/PasswordManager.java server/MacManager.java server/CriarUser.java server/MySaudeServer.java client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
+
+
+--- CRIAR KEYSTORES RSA-2048 ---
+
+keytool -genkeypair -alias afonso    -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.afonso    -validity 365 -storepass 123456 -keypass 123456 -dname "CN=afonso"
+keytool -genkeypair -alias lima      -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.lima      -validity 365 -storepass 123456 -keypass 123456 -dname "CN=lima"
+keytool -genkeypair -alias duarte    -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.duarte    -validity 365 -storepass 123456 -keypass 123456 -dname "CN=duarte"
+keytool -genkeypair -alias alexandre -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.alexandre -validity 365 -storepass 123456 -keypass 123456 -dname "CN=alexandre"
+
+
+--- EXPORTAR CERTIFICADOS ---
+
+keytool -exportcert -alias afonso    -keystore keystore.afonso    -file afonso.cer    -storepass 123456
+keytool -exportcert -alias lima      -keystore keystore.lima      -file lima.cer      -storepass 123456
+keytool -exportcert -alias duarte    -keystore keystore.duarte    -file duarte.cer    -storepass 123456
+keytool -exportcert -alias alexandre -keystore keystore.alexandre -file alexandre.cer -storepass 123456
+
+
+--- IMPORTAR RELACOES DE CONFIANCA ---
+
+keytool -importcert -alias lima   -file lima.cer   -keystore keystore.afonso    -storepass 123456 -noprompt
+keytool -importcert -alias duarte -file duarte.cer -keystore keystore.afonso    -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.lima      -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.duarte    -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.alexandre -storepass 123456 -noprompt
+
+NOTA: Lima NAO importa o cert de Duarte — vai busca-lo ao servidor automaticamente (Ponto E).
+
+
+--- CRIAR UTILIZADORES ---
+(cada comando pede a password de MAC — escrever: macpassword123)
+
+java server.CriarUser afonso medico 123456 -f afonso.cer
+java server.CriarUser lima   medico 123456 -f lima.cer
+java server.CriarUser duarte medico 123456 -f duarte.cer
+java server.CriarUser bob    utente 123456 -f alexandre.cer
+
+
+--- COPIAR PARA OS PCs CLIENTE (pen drive) ---
+
+Para PC CLIENTE 1 (Lima):   keystore.afonso  keystore.lima  pasta client/
+Para PC CLIENTE 2 (Duarte): keystore.afonso  keystore.duarte  pasta client/
+
+
+--- ARRANCAR O SERVIDOR (fica bloqueado nesta janela) ---
+(pede a password de MAC — escrever: macpassword123)
+
+java server.MySaudeServer 8080 keystore.afonso 123456
+
+
+================================================================================
+PC CLIENTE 1 (Lima) — TODOS OS COMANDOS (por ordem)
+================================================================================
+
+PRE-REQUISITO: ter na pasta keystore.afonso, keystore.lima e pasta client/
+
+
+--- COMPILAR ---
+
+javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
+
+
+--- DEFINIR FLAGS TLS (uma unica vez no inicio da sessao) ---
+
+$env:_JAVA_OPTIONS = "-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+
+--- CRIAR FICHEIRO DE TESTE ---
+
+echo "documento de teste" > teste.txt
+
+
+--- ENVIAR FICHEIRO SIMPLES PARA DUARTE (-e) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -e teste.txt
+
+
+--- RECEBER FICHEIRO ENVIADO POR DUARTE (-r) ---
+(Duarte tem de ter enviado antes com -e)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -r teste.txt
+
+
+--- CIFRAR LOCALMENTE PARA AFONSO (-c) ---
+(sem servidor — Lima tem o cert de Afonso na keystore)
+
+java client.MySaude -u lima -p 123456 -t afonso -c teste.txt
+
+
+--- DECIFRAR LOCALMENTE (-d) ---
+
+java client.MySaude -u lima -p 123456 -d teste.txt.cifrado
+
+
+--- ASSINAR LOCALMENTE (-a) ---
+
+java client.MySaude -u lima -p 123456 -a teste.txt
+
+
+--- CIFRAR E ENVIAR PARA DUARTE (-ce) ---
+(Lima nao tem o cert de Duarte — vai busca-lo ao servidor: Ponto E)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ce teste.txt
+
+
+--- RECEBER E DECIFRAR O QUE DUARTE ENVIOU (-rd) ---
+(Duarte tem de ter feito -ce para Lima antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -rd teste.txt
+
+
+--- ASSINAR, CIFRAR E ENVIAR PARA DUARTE (-ae) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ae teste.txt
+
+
+--- RECEBER, DECIFRAR E VERIFICAR ASSINATURA DE DUARTE (-rv) ---
+(Duarte tem de ter feito -ae para Lima antes)
+(Lima nao tem o cert de Duarte — vai busca-lo ao servidor: Ponto E)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -rv teste.txt
+
+
+--- ENVELOPE SEGURO PARA DUARTE (-ace) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ace teste.txt
+
+
+--- ABRIR ENVELOPE DE DUARTE (-rdv) ---
+(Duarte tem de ter feito -ace para Lima antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -rdv teste.txt
+
+
+--- DEMONSTRAR CONTROLO DE ACESSO (bob e utente, nao pode enviar) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u bob -p 123456 -t duarte -e teste.txt
+(esperado: ERRO — so medicos podem enviar)
+
+
+================================================================================
+PC CLIENTE 2 (Duarte) — TODOS OS COMANDOS (por ordem)
+================================================================================
+
+PRE-REQUISITO: ter na pasta keystore.afonso, keystore.duarte e pasta client/
+
+
+--- COMPILAR ---
+
+javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
+
+
+--- DEFINIR FLAGS TLS (uma unica vez no inicio da sessao) ---
+
+$env:_JAVA_OPTIONS = "-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+
+--- CRIAR FICHEIRO DE TESTE ---
+
+echo "documento de teste" > teste.txt
+
+
+--- RECEBER FICHEIRO ENVIADO POR LIMA (-r) ---
+(Lima tem de ter feito -e para Duarte antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -r teste.txt
+
+
+--- ENVIAR FICHEIRO SIMPLES PARA LIMA (-e) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -e teste.txt
+
+
+--- RECEBER E DECIFRAR O QUE LIMA ENVIOU (-rd) ---
+(Lima tem de ter feito -ce para Duarte antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -rd teste.txt
+
+
+--- CIFRAR E ENVIAR PARA LIMA (-ce) ---
+(Duarte nao tem o cert de Lima — vai busca-lo ao servidor: Ponto E)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ce teste.txt
+
+
+--- RECEBER, DECIFRAR E VERIFICAR ASSINATURA DE LIMA (-rv) ---
+(Lima tem de ter feito -ae para Duarte antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -rv teste.txt
+
+
+--- ASSINAR, CIFRAR E ENVIAR PARA LIMA (-ae) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ae teste.txt
+
+
+--- ABRIR ENVELOPE DE LIMA (-rdv) ---
+(Lima tem de ter feito -ace para Duarte antes)
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -rdv teste.txt
+
+
+--- ENVELOPE SEGURO PARA LIMA (-ace) ---
+
+java client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ace teste.txt
+
+
+--- ASSINAR LOCALMENTE (-a) ---
+
+java client.MySaude -u duarte -p 123456 -a teste.txt
+
+
+================================================================================
+DEMONSTRACAO DOS PONTOS DO ENUNCIADO (correr no PC SERVIDOR)
+================================================================================
+
+Correr estes comandos no servidor com o servidor ja a correr noutro terminal.
+
+
+--- Ponto A: Ver ficheiro de passwords (formato username:funcao:salt:digest) ---
+
+Get-Content server_storage/users
+
+
+--- Ponto B: MAC errado no arranque (servidor deve terminar imediatamente) ---
+(porta 9999 so para demo, nao interfere com o servidor real na porta 8080)
+
+echo MAC_ERRADA | java server.MySaudeServer 9999 keystore.afonso 123456
+
+
+--- Ponto C: Username ja existente (deve dar erro) ---
+
+echo macpassword123 | java server.CriarUser afonso medico 123456 -f afonso.cer
+
+
+--- Ponto C: Funcao invalida (deve dar erro) ---
+
+java server.CriarUser novo enfermeiro 123456 -f afonso.cer
