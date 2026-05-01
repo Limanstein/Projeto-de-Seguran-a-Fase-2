@@ -1,234 +1,354 @@
 GRUPO 016
-- 62239 Lourenço Lima
+- 62239 Lourenco Lima
 - 62238 Afonso Paulo
 - 62235 Duarte Alberto
 
 ================================================================================
-SCRIPTS POWERSHELL
+CONFIGURACAO — 3 MAQUINAS (SERVIDOR + CLIENTE 1 + CLIENTE 2)
 ================================================================================
 
-IMPORTANTE: Para rodar qualquer ficheiro .ps1 (powershell), fazer: .\nome.ps1
+Esta e a forma correta de correr o projeto (como pedido no enunciado).
+O servidor corre numa maquina e os dois clientes correm em maquinas separadas.
 
-NOTA: Caso os comandos do powershell não estejam a correr é necessário correr
-primeiro este comando, em cada terminal, para que os mesmos funcionem:
-    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+--- FICHEIROS NECESSARIOS EM CADA MAQUINA ---
 
---- DESCRIÇÃO DOS SCRIPTS ---
+    PC SERVIDOR:
+        - Todo o codigo compilado (pastas server/ e client/)
+        - keystore.afonso  (keystore TLS do servidor)
+        - server_storage/  (criado automaticamente)
 
-rebuild.ps1      - Recompila todos os ficheiros .java do projeto (server + client)
-limpeza.ps1      - Limpa keystores, certificados, ficheiros gerados e server_storage
-                   (também para o servidor se estiver a correr na porta 8080)
-criar_keys.ps1   - Cria keystores e certificados para todos os utilizadores
-                   e estabelece as relações de confiança necessárias
-criar_users.ps1  - Cria os utilizadores no servidor (ficheiro users + MAC)
-                   Requer que criar_keys.ps1 tenha sido executado antes
-server.ps1       - Inicia o servidor TLS na porta 8080
-                   (pede a password de MAC ao arrancar: macpassword123)
-testes_fase1.ps1 - Testa as operações locais sem servidor (-c, -d, -a, -v)
-testes_fase2.ps1 - Testa todas as funcionalidades da Fase 2 com servidor
-                   (autenticação, MAC, TLS, certificados, operações combinadas)
+    PC CLIENTE 1 (ex: Lima):
+        - Todo o codigo compilado (pasta client/)
+        - keystore.afonso  (necessario para confiar no servidor via TLS)
+        - keystore.lima    (chave privada + certificado do utilizador)
 
---- ORDEM DE EXECUÇÃO (MÁQUINAS SEPARADAS) ---
+    PC CLIENTE 2 (ex: Duarte):
+        - Todo o codigo compilado (pasta client/)
+        - keystore.afonso  (necessario para confiar no servidor via TLS)
+        - keystore.duarte  (chave privada + certificado do utilizador)
 
-1 - Correr rebuild.ps1 (em ambos os PCs)
-2 - Correr criar_keys.ps1 (no PC SERVIDOR)
-3 - Correr criar_users.ps1 (no PC SERVIDOR)
-4 - Copiar keystores e certificados para o PC CLIENTE (pen drive):
-        keystore.afonso, keystore.lima, keystore.duarte, keystore.alexandre
-        afonso.cer, lima.cer, duarte.cer, alexandre.cer
-5 - No PC SERVIDOR, correr server.ps1 (inserir password de MAC: macpassword123)
-6 - No PC CLIENTE, correr testes_fase1.ps1 e/ou testes_fase2.ps1
-7 - Correr limpeza.ps1 para deixar o projeto limpo
+NOTA: O keystore.afonso serve de truststore nos clientes porque o servidor
+      usa o certificado de 'afonso' para o TLS. Todos os clientes precisam
+      dele para validar a identidade do servidor.
 
-NOTA: Mudar a variável $S nos scripts de teste para o IP do servidor!
-      Exemplo: $S = "192.168.1.10:8080"
+--- ORDEM DE EXECUCAO COM SCRIPTS POWERSHELL ---
 
---- ORDEM DE EXECUÇÃO (MÁQUINA LOCAL / localhost) ---
+IMPORTANTE: Para correr scripts .ps1 fazer:   .\nome_do_script.ps1
+            Se nao correr, executar primeiro:  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-1 - rebuild.ps1
-2 - criar_keys.ps1
-3 - criar_users.ps1
-4 - server.ps1  (numa janela separada; inserir password de MAC: macpassword123)
-5 - testes_fase1.ps1  (sem servidor a correr)
-    testes_fase2.ps1  (com servidor a correr)
-6 - limpeza.ps1
+PASSO 1 — No PC SERVIDOR, compilar:
+    .\rebuild.ps1
+
+PASSO 2 — No PC SERVIDOR, criar keystores e certificados:
+    .\criar_keys.ps1
+
+PASSO 3 — No PC SERVIDOR, criar os utilizadores no sistema:
+    .\criar_users.ps1
+    (inserir a password de MAC quando pedido: macpassword123)
+
+PASSO 4 — Copiar ficheiros para os PCs CLIENTE (via pen drive ou rede):
+
+    Para PC CLIENTE 1 (Lima):
+        keystore.afonso   <- truststore TLS
+        keystore.lima     <- keystore do utilizador Lima
+        pasta client/     <- codigo compilado
+
+    Para PC CLIENTE 2 (Duarte):
+        keystore.afonso   <- truststore TLS
+        keystore.duarte   <- keystore do utilizador Duarte
+        pasta client/     <- codigo compilado
+
+PASSO 5 — No PC SERVIDOR, arrancar o servidor:
+    .\server.ps1
+    (inserir a password de MAC quando pedido: macpassword123)
+
+PASSO 6 — Nos PCs CLIENTE, correr os testes:
+
+    IMPORTANTE: Alterar o IP do servidor no script de testes antes de correr!
+    Abrir testes_fase2.ps1 e alterar a linha:
+        $S = "localhost:8080"   ->   $S = "IP_DO_SERVIDOR:8080"
+
+    Exemplo se o IP do servidor for 192.168.1.10:
+        $S = "192.168.1.10:8080"
+
+    Depois correr:
+        .\testes_fase1.ps1   (operacoes locais, sem servidor)
+        .\testes_fase2.ps1   (operacoes com servidor)
+
+PASSO 7 — No final, limpar tudo:
+    .\limpeza.ps1
+
+--- DESCRICAO DOS SCRIPTS ---
+
+    rebuild.ps1      - Recompila todos os ficheiros .java (server + client)
+    limpeza.ps1      - Limpa keystores, certificados, ficheiros gerados e server_storage
+                       (tambem para o servidor se estiver a correr na porta 8080)
+    criar_keys.ps1   - Cria keystores RSA-2048 e certificados para todos os utilizadores
+                       e importa as relacoes de confianca necessarias
+    criar_users.ps1  - Regista os utilizadores no servidor (ficheiro users + MAC)
+                       Requer que criar_keys.ps1 tenha sido executado antes
+    server.ps1       - Inicia o servidor TLS na porta 8080
+    testes_fase1.ps1 - Testa as operacoes locais sem servidor (-c, -d, -a, -v)
+    testes_fase2.ps1 - Testa todas as funcionalidades com servidor
+                       (autenticacao, MAC, TLS, certificados, operacoes combinadas)
 
 
 ================================================================================
-SEM POWERSHELL — EXECUÇÃO MANUAL
+SEM POWERSHELL — EXECUCAO MANUAL NAS 3 MAQUINAS
 ================================================================================
 
-1. COMPILAÇÃO
---------------------------------------------------------------------------------
-Certifique-se de que está na raiz do projeto (onde se encontram as pastas
-'client' e 'server'). Execute os seguintes comandos:
-
-    javac -encoding UTF-8 server/PasswordManager.java server/MacManager.java ^
-          server/CriarUser.java server/MySaudeServer.java ^
-          client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
-
-(No Linux/Mac substituir ^ por \ ou colocar tudo numa linha)
+NOTA ANTES DE COMECAR:
+  Substituir IP_SERVIDOR pelo IP real do servidor em todos os comandos dos clientes.
+  Para saber o IP do servidor correr (Linux):   hostname -I | awk '{print $1}'
+  Para saber o IP do servidor correr (Windows): ipconfig
 
 
-2. CONFIGURAÇÃO DE CHAVES E CERTIFICADOS
---------------------------------------------------------------------------------
-Gerar keystores RSA-2048 para cada utilizador:
+================================================================================
+PC SERVIDOR — TODOS OS COMANDOS DO TERMINAL (por ordem)
+================================================================================
 
-    keytool -genkeypair -alias afonso -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.afonso -validity 365 -storepass 123456 -keypass 123456 -dname "CN=afonso"
-    keytool -genkeypair -alias lima -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.lima -validity 365 -storepass 123456 -keypass 123456 -dname "CN=lima"
-    keytool -genkeypair -alias duarte -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.duarte -validity 365 -storepass 123456 -keypass 123456 -dname "CN=duarte"
-    keytool -genkeypair -alias alexandre -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.alexandre -validity 365 -storepass 123456 -keypass 123456 -dname "CN=alexandre"
+--- PASSO 1: Compilar ---
 
-Exportar certificados:
-
-    keytool -exportcert -alias afonso    -keystore keystore.afonso    -file afonso.cer    -storepass 123456
-    keytool -exportcert -alias lima      -keystore keystore.lima      -file lima.cer      -storepass 123456
-    keytool -exportcert -alias duarte    -keystore keystore.duarte    -file duarte.cer    -storepass 123456
-    keytool -exportcert -alias alexandre -keystore keystore.alexandre -file alexandre.cer -storepass 123456
-
-Importar certificados (relações de confiança):
-
-    keytool -importcert -alias afonso -file afonso.cer -keystore keystore.lima      -storepass 123456 -noprompt
-    keytool -importcert -alias lima   -file lima.cer   -keystore keystore.afonso    -storepass 123456 -noprompt
-    keytool -importcert -alias duarte -file duarte.cer -keystore keystore.afonso    -storepass 123456 -noprompt
-    keytool -importcert -alias afonso -file afonso.cer -keystore keystore.duarte    -storepass 123456 -noprompt
-    keytool -importcert -alias afonso -file afonso.cer -keystore keystore.alexandre -storepass 123456 -noprompt
-
-NOTA: Lima NÃO importa o certificado de Duarte intencionalmente.
-      O cliente vai buscá-lo automaticamente ao servidor quando necessário (Ponto E).
+javac -encoding UTF-8 server/PasswordManager.java server/MacManager.java server/CriarUser.java server/MySaudeServer.java client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
 
 
-3. CRIAR UTILIZADORES (FASE 2)
---------------------------------------------------------------------------------
-O programa CriarUser regista utilizadores no servidor.
-Pede a password de MAC ao ser executado (usar sempre a mesma: macpassword123).
+--- PASSO 2: Criar keystores RSA-2048 para cada utilizador ---
 
-Formato: java server.CriarUser <username> <funcao> <password> -f <certificado>
-
-    java server.CriarUser afonso medico 123456 -f afonso.cer
-    java server.CriarUser lima   medico 123456 -f lima.cer
-    java server.CriarUser duarte medico 123456 -f duarte.cer
-    java server.CriarUser bob    utente 123456 -f alexandre.cer
-
-Verificar o ficheiro de utilizadores criado:
-    cat server_storage/users
-    (formato: username:funcao:salt:sintese(salt||password))
-
-Erros tratados pelo CriarUser:
-    - Username já existente  -> mensagem de erro e termina
-    - Função inválida        -> mensagem de erro e termina (só 'medico' ou 'utente')
-    - MAC inválido           -> operação cancelada (ficheiro users pode estar adulterado)
+keytool -genkeypair -alias afonso    -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.afonso    -validity 365 -storepass 123456 -keypass 123456 -dname "CN=afonso"
+keytool -genkeypair -alias lima      -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.lima      -validity 365 -storepass 123456 -keypass 123456 -dname "CN=lima"
+keytool -genkeypair -alias duarte    -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.duarte    -validity 365 -storepass 123456 -keypass 123456 -dname "CN=duarte"
+keytool -genkeypair -alias alexandre -keyalg RSA -keysize 2048 -storetype JKS -keystore keystore.alexandre -validity 365 -storepass 123456 -keypass 123456 -dname "CN=alexandre"
 
 
-4. EXECUÇÃO DO SERVIDOR (FASE 2 — TLS)
---------------------------------------------------------------------------------
-O servidor requer 3 argumentos: porto, keystore e password da keystore.
-Pede também a password de MAC ao arrancar.
+--- PASSO 3: Exportar certificados ---
 
-    java server.MySaudeServer 8080 keystore.afonso 123456
-    (inserir quando pedido: macpassword123)
-
-O servidor verifica o MAC do ficheiro users no arranque.
-Se o MAC estiver errado, o servidor imprime um aviso e termina imediatamente.
-
-NOTA: O certificado do servidor é o de 'afonso' (CN=afonso).
-      Os clientes usam keystore.afonso como trust store para validar o TLS.
+keytool -exportcert -alias afonso    -keystore keystore.afonso    -file afonso.cer    -storepass 123456
+keytool -exportcert -alias lima      -keystore keystore.lima      -file lima.cer      -storepass 123456
+keytool -exportcert -alias duarte    -keystore keystore.duarte    -file duarte.cer    -storepass 123456
+keytool -exportcert -alias alexandre -keystore keystore.alexandre -file alexandre.cer -storepass 123456
 
 
-5. EXECUÇÃO DO CLIENTE (FASE 2 — com autenticação e TLS)
---------------------------------------------------------------------------------
-IMPORTANTE: Todos os comandos que contactam o servidor precisam das flags de TLS:
-    -Djavax.net.ssl.trustStore=keystore.afonso
-    -Djavax.net.ssl.trustStorePassword=123456
+--- PASSO 4: Importar relacoes de confianca entre utilizadores ---
 
-Se o servidor estiver noutra máquina, substituir 'localhost' pelo IP do servidor.
+keytool -importcert -alias lima   -file lima.cer   -keystore keystore.afonso    -storepass 123456 -noprompt
+keytool -importcert -alias duarte -file duarte.cer -keystore keystore.afonso    -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.lima      -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.duarte    -storepass 123456 -noprompt
+keytool -importcert -alias afonso -file afonso.cer -keystore keystore.alexandre -storepass 123456 -noprompt
 
-A) ENVIAR E RECEBER FICHEIROS SIMPLES (-e / -r)
-
-    Afonso (medico) envia para Lima:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u afonso -p 123456 -t lima -e teste.pdf
-
-    Lima recebe:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u lima -p 123456 -r teste.pdf
-
-B) CIFRAR E DECIFRAR LOCALMENTE (SEM SERVIDOR — sem flags TLS)
-
-    Lima cifra para Afonso:
-    java client.MySaude -u lima -p 123456 -t afonso -c teste.pdf
-
-    Afonso decifra:
-    java client.MySaude -u afonso -p 123456 -d teste.pdf.cifrado
-
-C) CIFRAR + ENVIAR / RECEBER + DECIFRAR (-ce / -rd)
-
-    Afonso cifra e envia para Lima:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u afonso -p 123456 -t lima -ce teste.pdf
-
-    Lima recebe e decifra:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u lima -p 123456 -rd teste.pdf
-
-D) ASSINAR E VALIDAR LOCALMENTE (SEM SERVIDOR — sem flags TLS)
-
-    Duarte assina:
-    java client.MySaude -u duarte -p 123456 -a teste.pdf
-
-    Afonso valida a assinatura de Duarte:
-    java client.MySaude -u afonso -p 123456 -t duarte -v teste.pdf
-
-E) ASSINAR + ENVIAR / RECEBER + VERIFICAR (-ae / -rv)
-
-    Lima assina, cifra e envia para Afonso:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u lima -p 123456 -t afonso -ae teste.pdf
-
-    Afonso recebe, decifra e verifica a assinatura de Lima:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u afonso -p 123456 -t lima -rv teste.pdf
-
-F) ENVELOPE SEGURO (-ace / -rdv)
-   (assinar + cifrar + enviar tudo em uma operação / receber + decifrar + verificar)
-
-    Duarte envia envelope seguro para Afonso:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u duarte -p 123456 -t afonso -ace teste.pdf
-
-    Afonso abre o envelope e valida a assinatura de Duarte:
-    java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s localhost:8080 -u afonso -p 123456 -t duarte -rdv teste.pdf
+    NOTA: Lima NAO importa o certificado de Duarte de proposito.
+          Quando Lima precisar do cert de Duarte, o cliente vai busca-lo
+          automaticamente ao servidor (Ponto E do enunciado).
 
 
-6. REFERÊNCIA DE UTILIZADORES
---------------------------------------------------------------------------------
-    Username | Função | Password | Certificado
-    ---------+--------+----------+---------------
-    afonso   | medico | 123456   | afonso.cer
-    lima     | medico | 123456   | lima.cer
-    duarte   | medico | 123456   | duarte.cer
-    bob      | utente | 123456   | alexandre.cer
+--- PASSO 5: Criar utilizadores no sistema ---
+    (cada comando pede a password de MAC — inserir: macpassword123)
 
-Password de MAC do servidor: macpassword123
-Password das keystores:      123456
-
-Apenas utilizadores com função 'medico' podem fazer upload de ficheiros.
-Todos os utilizadores autenticados podem fazer download.
+java server.CriarUser afonso medico 123456 -f afonso.cer
+java server.CriarUser lima   medico 123456 -f lima.cer
+java server.CriarUser duarte medico 123456 -f duarte.cer
+java server.CriarUser bob    utente 123456 -f alexandre.cer
 
 
-7. NOTAS DE SEGURANÇA
---------------------------------------------------------------------------------
-- TLS: A comunicação entre cliente e servidor é sempre cifrada via TLS/SSL.
-  O certificado do servidor é o de 'afonso'. Os clientes precisam de ter
-  o certificado de 'afonso' na sua keystore para validar a ligação.
+--- PASSO 6: Copiar para os PCs cliente (via pen drive ou rede) ---
 
-- Autenticação: O servidor verifica a password de cada utilizador antes de
-  aceitar qualquer operação. Passwords erradas ou utilizadores inexistentes
-  são rejeitados com mensagem de erro.
+    Para PC CLIENTE 1 (Lima):
+        keystore.afonso  keystore.lima  e toda a pasta client/
 
-- MAC (Integridade): O ficheiro 'users' é protegido por HMAC-SHA256.
-  O servidor verifica o MAC no arranque e em cada acesso. Se o ficheiro
-  tiver sido adulterado, o servidor termina imediatamente.
+    Para PC CLIENTE 2 (Duarte):
+        keystore.afonso  keystore.duarte  e toda a pasta client/
 
-- Certificados (Ponto E): Se o certificado do destinatário não existir
-  na keystore local do cliente, o cliente vai buscá-lo automaticamente
-  ao servidor via TLS e guarda-o localmente para uso futuro.
 
-- Unicidade: O servidor impede o envio de um ficheiro com o mesmo nome
-  base para o mesmo destinatário (evita sobreposição de dados).
+--- PASSO 7: Arrancar o servidor (fica a correr nesta janela) ---
+    (pede a password de MAC — inserir: macpassword123)
 
-- Controlo de acesso: Só utilizadores com função 'medico' podem fazer
-  upload. Utentes só podem fazer download dos seus próprios ficheiros.
+java server.MySaudeServer 8080 keystore.afonso 123456
+
+
+================================================================================
+PC CLIENTE 1 (Lima) — TODOS OS COMANDOS DO TERMINAL (por ordem)
+================================================================================
+
+    NOTA: Garantir que os ficheiros keystore.afonso e keystore.lima estao
+          na mesma pasta de onde se correm os comandos.
+          Substituir IP_SERVIDOR pelo IP real do servidor.
+
+
+--- PASSO 1: Compilar ---
+
+javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
+
+
+--- PASSO 2: Criar ficheiro de teste ---
+
+    (Linux)   echo "documento de teste" > teste.txt
+    (Windows) echo documento de teste > teste.txt
+
+
+--- PASSO 3: Enviar ficheiro simples para Duarte (-e) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -e teste.txt
+
+
+--- PASSO 4: Cifrar localmente para Afonso e depois decifrar (-c e -d) ---
+    (operacoes locais: sem servidor, sem flags TLS)
+
+java client.MySaude -u lima -p 123456 -t afonso -c teste.txt
+java client.MySaude -u lima -p 123456 -d teste.txt.cifrado
+
+
+--- PASSO 5: Cifrar e enviar para Duarte (-ce) ---
+    (Lima nao tem o cert de Duarte — vai busca-lo ao servidor automaticamente: Ponto E)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ce teste.txt
+
+
+--- PASSO 6: Assinar ficheiro localmente (-a) ---
+
+java client.MySaude -u lima -p 123456 -a teste.txt
+
+
+--- PASSO 7: Assinar, cifrar e enviar para Duarte (-ae) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ae teste.txt
+
+
+--- PASSO 8: Receber e decifrar ficheiro enviado por Duarte (-rd) ---
+    (Duarte tem de ter enviado um ficheiro para Lima com -ce antes deste passo)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -rd teste.txt
+
+
+--- PASSO 9: Receber, decifrar e verificar assinatura de Duarte (-rv) ---
+    (Duarte tem de ter enviado um ficheiro para Lima com -ae antes deste passo)
+    (Lima nao tem o cert de Duarte — vai busca-lo ao servidor automaticamente: Ponto E)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -rv teste.txt
+
+
+--- PASSO 10: Envelope seguro — enviar para Duarte (-ace) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -ace teste.txt
+
+
+--- PASSO 11: Envelope seguro — receber de Duarte (-rdv) ---
+    (Duarte tem de ter enviado um envelope para Lima com -ace antes deste passo)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u lima -p 123456 -t duarte -rdv teste.txt
+
+
+--- PASSO 12: Demonstrar controlo de acesso (bob e utente, nao pode enviar) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u bob -p 123456 -t duarte -e teste.txt
+    (esperado: ERRO — Acesso negado. Apenas 'medico' pode enviar ficheiros)
+
+
+================================================================================
+PC CLIENTE 2 (Duarte) — TODOS OS COMANDOS DO TERMINAL (por ordem)
+================================================================================
+
+    NOTA: Garantir que os ficheiros keystore.afonso e keystore.duarte estao
+          na mesma pasta de onde se correm os comandos.
+          Substituir IP_SERVIDOR pelo IP real do servidor.
+
+
+--- PASSO 1: Compilar ---
+
+javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaude.java
+
+
+--- PASSO 2: Criar ficheiro de teste ---
+
+    (Linux)   echo "documento de teste" > teste.txt
+    (Windows) echo documento de teste > teste.txt
+
+
+--- PASSO 3: Receber ficheiro simples enviado por Lima (-r) ---
+    (Lima tem de ter feito o passo 3 antes deste)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -r teste.txt
+
+
+--- PASSO 4: Receber e decifrar ficheiro cifrado por Lima (-rd) ---
+    (Lima tem de ter feito o passo 5 antes deste)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -rd teste.txt
+
+
+--- PASSO 5: Receber, decifrar e verificar assinatura de Lima (-rv) ---
+    (Lima tem de ter feito o passo 7 antes deste)
+    (Duarte nao tem o cert de Lima — vai busca-lo ao servidor automaticamente: Ponto E)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -rv teste.txt
+
+
+--- PASSO 6: Cifrar e enviar para Lima (-ce) ---
+    (Duarte nao tem o cert de Lima — vai busca-lo ao servidor automaticamente: Ponto E)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ce teste.txt
+
+
+--- PASSO 7: Assinar, cifrar e enviar para Lima (-ae) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ae teste.txt
+
+
+--- PASSO 8: Envelope seguro — enviar para Lima (-ace) ---
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -ace teste.txt
+
+
+--- PASSO 9: Envelope seguro — receber de Lima (-rdv) ---
+    (Lima tem de ter feito o passo 10 antes deste)
+
+java -Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456 client.MySaude -s IP_SERVIDOR:8080 -u duarte -p 123456 -t lima -rdv teste.txt
+
+
+--- PASSO 10: Assinar localmente (-a) e verificar localmente (-v) ---
+    (operacoes locais: sem servidor, sem flags TLS)
+
+java client.MySaude -u duarte -p 123456 -a teste.txt
+java client.MySaude -u duarte -p 123456 -t duarte -v teste.txt
+
+
+================================================================================
+REFERENCIA RAPIDA
+================================================================================
+
+    Username  | Funcao | Password | Keystore
+    ----------+--------+----------+------------------
+    afonso    | medico | 123456   | keystore.afonso  (tambem e o servidor TLS)
+    lima      | medico | 123456   | keystore.lima
+    duarte    | medico | 123456   | keystore.duarte
+    bob       | utente | 123456   | keystore.alexandre
+
+    Password de MAC do servidor : macpassword123
+    Password de todas as keystores : 123456
+
+    So utilizadores com funcao 'medico' podem fazer UPLOAD.
+    Todos os utilizadores autenticados podem fazer DOWNLOAD.
+    Operacoes locais (-c, -d, -a, -v) nao precisam de servidor nem de autenticacao.
+
+
+================================================================================
+NOTAS DE SEGURANCA
+================================================================================
+
+    TLS: A comunicacao entre cliente e servidor e sempre cifrada via TLS/SSL.
+         O servidor usa o certificado de 'afonso'. Os clientes precisam de
+         keystore.afonso como truststore para validar a identidade do servidor.
+
+    Autenticacao: O servidor verifica a password antes de aceitar qualquer
+         operacao. Passwords erradas ou utilizadores inexistentes sao rejeitados.
+
+    MAC (Integridade): O ficheiro 'users' e protegido por HMAC-SHA256.
+         O servidor verifica o MAC no arranque e em cada acesso. Se o ficheiro
+         tiver sido adulterado, o servidor termina imediatamente.
+
+    Certificados (Ponto E): Se o certificado do destinatario nao existir
+         na keystore local do cliente, o cliente vai busca-lo automaticamente
+         ao servidor via TLS e guarda-o localmente para uso futuro.
+         (Ex: Lima nao tem o certificado de Duarte — vai busca-lo ao servidor)
+
+    Controlo de acesso: So 'medico' pode fazer upload. Utentes so podem
+         fazer download dos seus proprios ficheiros.
