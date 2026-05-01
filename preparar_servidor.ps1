@@ -1,10 +1,10 @@
 # =============================================================
-# PREPARAÇÃO DO SERVIDOR — Script único para a máquina servidor
+# PREPARACAO DO SERVIDOR - Script unico para a maquina servidor
 # =============================================================
-# Faz tudo o que é necessário no servidor antes de arrancar:
-#   1. Compila todo o código (server + client)
+# Faz tudo o que e necessario no servidor antes de arrancar:
+#   1. Compila todo o codigo (server + client)
 #   2. Cria keystores RSA-2048 e certificados
-#   3. Estabelece relações de confiança
+#   3. Estabelece relacoes de confianca
 #   4. Regista os utilizadores no sistema
 #   5. Mostra os ficheiros a copiar para os clientes
 #   6. Arranca o servidor TLS
@@ -25,7 +25,7 @@ Write-Host "============================================================" -Foreg
 
 
 # =============================================================
-# PASSO 1 — Compilar
+# PASSO 1 - Compilar
 # =============================================================
 Write-Host "`n[1/4] A compilar todo o codigo..." -ForegroundColor Yellow
 
@@ -46,7 +46,7 @@ Write-Host "Compilacao concluida." -ForegroundColor Green
 
 
 # =============================================================
-# PASSO 2 — Criar keystores e certificados
+# PASSO 2 - Criar keystores e certificados
 # =============================================================
 Write-Host "`n[2/4] A criar keystores e certificados..." -ForegroundColor Yellow
 
@@ -68,11 +68,11 @@ keytool -importcert -alias afonso -file afonso.cer -keystore keystore.duarte    
 keytool -importcert -alias afonso -file afonso.cer -keystore keystore.alexandre -storepass $PASS -noprompt 2>&1 | Out-Null
 
 Write-Host "Keystores e certificados criados." -ForegroundColor Green
-Write-Host "  (Lima NAO importa cert de Duarte — fetch automatico via Ponto E)" -ForegroundColor DarkYellow
+Write-Host "  (Lima NAO importa cert de Duarte - fetch automatico via Ponto E)" -ForegroundColor DarkYellow
 
 
 # =============================================================
-# PASSO 3 — Criar utilizadores
+# PASSO 3 - Criar utilizadores
 # =============================================================
 Write-Host "`n[3/4] A criar utilizadores (password MAC: $MAC_PASS)..." -ForegroundColor Yellow
 
@@ -86,7 +86,7 @@ Get-Content "server_storage/users"
 
 
 # =============================================================
-# PASSO 4 — Instruções de cópia para os clientes
+# PASSO 4 - Copiar para os clientes
 # =============================================================
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Magenta
@@ -104,6 +104,13 @@ Write-Host "    keystore.duarte" -ForegroundColor Cyan
 Write-Host "    pasta client/" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Depois de copiar, correr preparar_cliente.ps1 em cada cliente." -ForegroundColor Yellow
+Write-Host ""
+
+$serverIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" } | Select-Object -First 1).IPAddress
+Write-Host "============================================================" -ForegroundColor Yellow
+Write-Host "  IP DESTE SERVIDOR: $serverIP" -ForegroundColor Yellow
+Write-Host "  Os clientes precisam deste IP para ligar ao servidor." -ForegroundColor Yellow
+Write-Host "============================================================" -ForegroundColor Yellow
 Write-Host ""
 
 

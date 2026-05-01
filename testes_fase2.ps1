@@ -18,9 +18,14 @@
 $OutputEncoding = [Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
 chcp 65001 | Out-Null
 
-$S        = "localhost:8080"
 $PASS     = "123456"
 $MAC_PASS = "macpassword123"
+
+Write-Host ""
+$ipServidor = Read-Host "Inserir o IP do servidor (ex: 192.168.1.10) - ENTER para localhost"
+if ($ipServidor -eq "") { $ipServidor = "localhost" }
+$S = "$ipServidor`:8080"
+Write-Host "  Servidor: $S" -ForegroundColor Green
 
 # Flags TLS para o cliente (necessário para certificados auto-assinados)
 $JVM = "-Djavax.net.ssl.trustStore=keystore.afonso", "-Djavax.net.ssl.trustStorePassword=$PASS"
