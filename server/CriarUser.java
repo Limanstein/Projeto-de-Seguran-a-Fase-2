@@ -5,28 +5,7 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 
-/*
- * CriarUser — Programa autónomo para criar utilizadores no sistema mySaude.
- *
- * Uso:
- *   java server.CriarUser <username> <funcao> <password> -f <ficheiro.cert>
- *
- * Exemplo:
- *   java server.CriarUser maria medico ut12?!WE -f maria.cert
- *
- * Este programa:
- *   1) Pede a password de MAC do servidor
- *   2) Verifica o MAC do ficheiro "users" antes de qualquer acesso
- *   3) Verifica se o username já existe -> erro e termina
- *   4) Verifica se a função é válida   -> erro e termina
- *   5) Adiciona o utilizador ao ficheiro "users" (hash + salt via PasswordManager)
- *   6) Recalcula e guarda o novo MAC   (via MacManager)
- *   7) Cria a diretoria do utilizador em server_storage/
- *   8) Adiciona o certificado à keystore.users (alias = username)
- *
- * Ponto C do enunciado.
- * Observação do enunciado: o username e o alias do certificado devem coincidir.
- */
+
 public class CriarUser {
 
     // Keystore do servidor que guarda os certificados de todos os utilizadores
@@ -39,6 +18,7 @@ public class CriarUser {
         //  1) VALIDAR ARGUMENTOS
         // -------------------------------------------------------
         // Formato esperado: <username> <funcao> <password> -f <ficheiro.cert>
+
         if (args.length != 5 || !args[3].equals("-f")) {
             System.out.println("Uso: java server.CriarUser <username> <funcao> <password> -f <ficheiro.cert>");
             return;
@@ -52,6 +32,7 @@ public class CriarUser {
         // -------------------------------------------------------
         //  2) VALIDAR FUNÇÃO
         // -------------------------------------------------------
+
         if (!PasswordManager.funcaoValida(funcao)) {
             System.out.println("Erro: função inválida '" + funcao + "'. Use 'medico' ou 'utente'.");
             return;
@@ -60,6 +41,7 @@ public class CriarUser {
         // -------------------------------------------------------
         //  3) PEDIR PASSWORD DE MAC
         // -------------------------------------------------------
+
         System.out.print("Introduza a password de MAC do servidor: ");
         BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
         String macPassword = consoleReader.readLine();
@@ -73,12 +55,14 @@ public class CriarUser {
         // -------------------------------------------------------
         //  4) GARANTIR QUE server_storage EXISTE
         // -------------------------------------------------------
+
         File serverStorage = new File("server_storage");
         if (!serverStorage.exists()) serverStorage.mkdirs();
 
         // -------------------------------------------------------
         //  5) VERIFICAR MAC ANTES DE QUALQUER ACESSO AO FICHEIRO users
         // -------------------------------------------------------
+
         File usersFile = new File(PasswordManager.USERS_FILE);
 
         if (!usersFile.exists()) {
@@ -104,6 +88,7 @@ public class CriarUser {
         // -------------------------------------------------------
         //  6) VERIFICAR SE O USERNAME JÁ EXISTE
         // -------------------------------------------------------
+
         if (PasswordManager.userExists(username)) {
             System.out.println("Erro: o utilizador '" + username + "' já existe.");
             return;
@@ -112,6 +97,7 @@ public class CriarUser {
         // -------------------------------------------------------
         //  7) VERIFICAR SE O FICHEIRO DE CERTIFICADO EXISTE
         // -------------------------------------------------------
+
         File certFileObj = new File(certFile);
         if (!certFileObj.exists()) {
             System.out.println("Erro: ficheiro de certificado não encontrado: " + certFile);
@@ -121,18 +107,21 @@ public class CriarUser {
         // -------------------------------------------------------
         //  8) ADICIONAR UTILIZADOR AO FICHEIRO users
         // -------------------------------------------------------
+
         PasswordManager.adicionarUser(username, funcao, password);
         System.out.println("Utilizador '" + username + "' adicionado ao ficheiro de passwords.");
 
         // -------------------------------------------------------
         //  9) ATUALIZAR O MAC APÓS ALTERAÇÃO DO FICHEIRO users
         // -------------------------------------------------------
+
         macManager.guardarMac(PasswordManager.USERS_FILE);
         System.out.println("MAC atualizado.");
 
         // -------------------------------------------------------
         //  10) CRIAR DIRETORIA DO UTILIZADOR EM server_storage/
         // -------------------------------------------------------
+
         File userDir = new File("server_storage/" + username);
         if (!userDir.exists()) {
             userDir.mkdirs();
@@ -143,6 +132,7 @@ public class CriarUser {
         //  11) ADICIONAR CERTIFICADO À keystore.users
         //      alias = username  (simplificação do enunciado)
         // -------------------------------------------------------
+
         adicionarCertificado(username, certFileObj);
         System.out.println("Certificado de '" + username + "' adicionado à keystore.users.");
         System.out.println("Utilizador '" + username + "' criado com sucesso.");
@@ -151,6 +141,7 @@ public class CriarUser {
     // ============================================================
     //  MÉTODO AUXILIAR — Adicionar certificado à keystore.users
     // ============================================================
+    
     private static void adicionarCertificado(String username, File certFile) throws Exception {
 
         // 1) Carregar o certificado do ficheiro .cert

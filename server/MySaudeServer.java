@@ -31,6 +31,7 @@ public class MySaudeServer {
         // -------------------------------------------------------
         //  PONTO B — Pedir password de MAC e verificar integridade
         // -------------------------------------------------------
+
         System.out.print("Introduza a password de MAC do servidor: ");
         BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in));
         String macPassword = consoleReader.readLine();
@@ -45,6 +46,7 @@ public class MySaudeServer {
         // -------------------------------------------------------
         //  PONTO D — Canal seguro TLS
         // -------------------------------------------------------
+
         System.setProperty("javax.net.ssl.keyStore", keystorePath);
         System.setProperty("javax.net.ssl.keyStorePassword", keystorePass);
 
@@ -113,6 +115,7 @@ public class MySaudeServer {
             //  Verificar MAC antes de aceder ao ficheiro users
             //  e autenticar o utilizador
             // -------------------------------------------------------
+
             try {
                 macManager.verificarAcesso(PasswordManager.USERS_FILE);
             } catch (Exception e) {
@@ -132,6 +135,7 @@ public class MySaudeServer {
             //  PONTO F — Controlo de acesso
             //  Apenas utilizadores com função "medico" podem fazer UPLOAD
             // -------------------------------------------------------
+
             String funcao = PasswordManager.getFuncao(username);
             if (!"medico".equals(funcao)) {
                 out.writeObject("ERRO: Acesso negado. Apenas utilizadores com função 'medico' podem enviar ficheiros.");
@@ -267,6 +271,7 @@ public class MySaudeServer {
     // O cliente envia o username de quem quer o certificado.
     // O servidor procura na keystore.users e devolve os bytes do certificado.
     // Se não existir, devolve "NOT_FOUND".
+    
     private static void handleGetCert(ObjectInputStream in, ObjectOutputStream out) {
         try {
             String username = (String) in.readObject();

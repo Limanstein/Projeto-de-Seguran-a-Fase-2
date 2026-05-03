@@ -5,24 +5,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.util.*;
 
-/*
- * MacManager — Protege a integridade do ficheiro "users" com HMAC-SHA256.
- *
- * Ponto B do enunciado: Integridade do ficheiro das passwords.
- *
- * Fluxo:
- *   1) No arranque do servidor: verificar o MAC do ficheiro "users".
- *      - Se o ficheiro mySaude.mac não existir -> aviso e terminar.
- *      - Se o MAC estiver errado               -> aviso e terminar.
- *   2) Em todos os acessos de leitura ao ficheiro "users": verificar MAC.
- *   3) Sempre que o ficheiro "users" for alterado: recalcular e guardar novo MAC.
- *
- * A chave é derivada diretamente da password de MAC do servidor:
- *   byte[] pass = macPassword.getBytes();
- *   SecretKey key = new SecretKeySpec(pass, "HmacSHA256");
- *
- * O MAC é guardado em codificação Base64 no ficheiro "server_storage/mySaude.mac".
- */
+
 public class MacManager {
 
     static final String MAC_FILE = "server_storage/mySaude.mac";
@@ -33,6 +16,7 @@ public class MacManager {
     // ============================================================
     //  CONSTRUTOR — deriva a chave a partir da password de MAC
     // ============================================================
+
     public MacManager(String macPassword) {
         // Exatamente como indicado no enunciado e no FAQ:
         //   byte[] pass = "maria12".getBytes();
@@ -46,6 +30,7 @@ public class MacManager {
     // ============================================================
     // Lê o conteúdo do ficheiro "users" byte a byte e calcula o HMAC-SHA256.
     // Devolve o MAC em Base64.
+
     public String calcularMac(String usersFilePath) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(macKey);
@@ -65,6 +50,7 @@ public class MacManager {
     // ============================================================
     //  GUARDAR O MAC NO FICHEIRO mySaude.mac
     // ============================================================
+
     public void guardarMac(String usersFilePath) throws Exception {
         String macB64 = calcularMac(usersFilePath);
 
@@ -79,6 +65,7 @@ public class MacManager {
     // Lê o MAC guardado em mySaude.mac e compara com o MAC calculado do ficheiro "users".
     // Devolve true se os MACs coincidem, false caso contrário.
     // Lança exceção específica se o ficheiro MAC não existir.
+
     public boolean verificarMac(String usersFilePath) throws Exception {
         File macFile = new File(MAC_FILE);
 
@@ -112,6 +99,7 @@ public class MacManager {
     // Chamado uma vez no arranque do servidor.
     // Se o ficheiro users não existir ainda (servidor novo), inicializa o MAC.
     // Se o MAC estiver errado, imprime aviso e termina o processo.
+
     public void verificarArranque(String usersFilePath) {
         File usersFile = new File(usersFilePath);
 
@@ -154,6 +142,7 @@ public class MacManager {
     // ============================================================
     // Chamado antes de cada acesso ao ficheiro users durante a execução.
     // Se o MAC estiver errado, lança exceção (o chamador deve tratar e recusar a operação).
+    
     public void verificarAcesso(String usersFilePath) throws Exception {
         boolean valido = verificarMac(usersFilePath);
         if (!valido) {

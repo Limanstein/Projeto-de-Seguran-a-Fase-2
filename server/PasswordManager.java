@@ -4,19 +4,7 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 
-/*
- * PasswordManager — Gere o ficheiro de passwords do servidor (mySaude).
- *
- * Formato de cada linha do ficheiro "users":
- *   username:funcao:salt:síntese(salt||password)
- *
- * Onde:
- *   - salt     -> 16 bytes aleatórios, codificados em Base64
- *   - síntese  -> SHA-256(salt_bytes || password_bytes), codificado em Base64
- *
- * Ponto A do enunciado: Confidencialidade das passwords.
- * As passwords nunca são guardadas em texto limpo.
- */
+
 public class PasswordManager {
 
     // Ficheiro onde são guardados os utilizadores
@@ -31,6 +19,7 @@ public class PasswordManager {
     // Recebe a password em texto limpo e devolve um array de 2 posições:
     //   [0] -> salt em Base64
     //   [1] -> síntese(salt || password) em Base64
+
     public static String[] hashPassword(String password) throws Exception {
         // 1) Gerar salt aleatório de 16 bytes
         SecureRandom sr = new SecureRandom();
@@ -52,6 +41,7 @@ public class PasswordManager {
     // ============================================================
     // Recebe a password em texto limpo, o salt em Base64 e a síntese em Base64.
     // Devolve true se a password está correta.
+
     public static boolean verifyPassword(String password, String saltB64, String digestB64) throws Exception {
         byte[] saltBytes    = Base64.getDecoder().decode(saltB64);
         byte[] digestEsperado = Base64.getDecoder().decode(digestB64);
@@ -63,6 +53,7 @@ public class PasswordManager {
     // ============================================================
     //  MÉTODO INTERNO: calcular SHA-256(salt || password)
     // ============================================================
+
     private static byte[] computeDigest(byte[] saltBytes, String password) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         md.update(saltBytes);                          // primeiro o salt
@@ -73,6 +64,7 @@ public class PasswordManager {
     // ============================================================
     //  VERIFICAR SE UM UTILIZADOR EXISTE
     // ============================================================
+
     public static boolean userExists(String username) throws Exception {
         File f = new File(USERS_FILE);
         if (!f.exists()) return false;
@@ -92,6 +84,7 @@ public class PasswordManager {
     //  OBTER A FUNÇÃO DO UTILIZADOR
     // ============================================================
     // Devolve "medico", "utente" ou null se o utilizador não existir.
+
     public static String getFuncao(String username) throws Exception {
         File f = new File(USERS_FILE);
         if (!f.exists()) return null;
@@ -112,6 +105,7 @@ public class PasswordManager {
     // ============================================================
     // Devolve true se o username existe e a password é correta.
     // Devolve false em qualquer outro caso (username não existe, password errada).
+
     public static boolean autenticar(String username, String password) throws Exception {
         File f = new File(USERS_FILE);
         if (!f.exists()) return false;
@@ -140,6 +134,7 @@ public class PasswordManager {
     // Escreve uma nova linha no ficheiro "users".
     // ATENÇÃO: não verifica MAC aqui — essa responsabilidade é do MacManager (Ponto B).
     // ATENÇÃO: não verifica duplicados aqui — deve ser verificado antes de chamar.
+
     public static void adicionarUser(String username, String funcao, String password) throws Exception {
         // Validar função
         if (!FUNCOES_VALIDAS.contains(funcao)) {
@@ -165,6 +160,7 @@ public class PasswordManager {
     // ============================================================
     //  VALIDAR FUNÇÃO
     // ============================================================
+    
     public static boolean funcaoValida(String funcao) {
         return FUNCOES_VALIDAS.contains(funcao);
     }
