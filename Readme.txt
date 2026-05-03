@@ -19,9 +19,6 @@ NOTAS IMPORTANTES ANTES DE COMECAR:
    Se enviares "teste.txt" com -e, nao podes depois enviar "teste.txt.cifrado"
    com -ce. Por isso cada operacao usa um ficheiro diferente neste guia.
 
-5. Ordem: Lima envia primeiro, depois Duarte recebe (e vice-versa).
-   As notas em cada passo indicam quando e necessario esperar pelo outro lado.
-
 
 ================================================================================
 TERMINAL 1 — PC SERVIDOR (setup completo)
