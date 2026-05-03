@@ -70,6 +70,15 @@ echo macpassword123 | java server.CriarUser bob    utente 123456 -f alexandre.ce
 
     Verificar ficheiro criado (deve mostrar formato username:funcao:salt:digest):
     cat server_storage/users
+    (Windows PowerShell: Get-Content server_storage/users)
+
+    Ver ficheiro MAC em base64 (Ponto B — prova de codificacao base64):
+    cat server_storage/mySaude.mac
+    (Windows PowerShell: Get-Content server_storage/mySaude.mac)
+
+    Verificar certificados na keystore do servidor (Ponto E.1):
+    keytool -list -keystore server_storage/keystore.users -storepass mysaude
+    (deve listar 4 entradas: afonso, lima, duarte, bob)
 
 
 --- PASSO 6: Copiar para os PCs cliente (pen drive) ---
@@ -102,15 +111,35 @@ javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaud
 
 --- PASSO 2: Definir flags TLS (uma unica vez no inicio da sessao) ---
 
-export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+    Linux/Mac:
+    export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+    Windows PowerShell:
+    $env:_JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+    Windows CMD:
+    set _JAVA_OPTIONS=-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456
 
 
 --- PASSO 3: Criar ficheiros de teste ---
 
-echo "documento simples de lima" > teste_simples.txt
-echo "documento cifrado de lima" > teste_cifrado.txt
-echo "documento assinado de lima" > teste_assinado.txt
-echo "documento envelope de lima" > teste_envelope.txt
+    Linux/Mac:
+    echo "documento simples de lima" > teste_simples.txt
+    echo "documento cifrado de lima" > teste_cifrado.txt
+    echo "documento assinado de lima" > teste_assinado.txt
+    echo "documento envelope de lima" > teste_envelope.txt
+
+    Windows PowerShell:
+    "documento simples de lima" | Out-File -Encoding utf8 teste_simples.txt
+    "documento cifrado de lima" | Out-File -Encoding utf8 teste_cifrado.txt
+    "documento assinado de lima" | Out-File -Encoding utf8 teste_assinado.txt
+    "documento envelope de lima" | Out-File -Encoding utf8 teste_envelope.txt
+
+    Windows CMD:
+    echo documento simples de lima > teste_simples.txt
+    echo documento cifrado de lima > teste_cifrado.txt
+    echo documento assinado de lima > teste_assinado.txt
+    echo documento envelope de lima > teste_envelope.txt
 
 
 --- PASSO 4: Operacoes locais (sem servidor) ---
@@ -209,15 +238,35 @@ javac -encoding UTF-8 client/KeyUtils.java client/CryptoUtils.java client/MySaud
 
 --- PASSO 2: Definir flags TLS (uma unica vez no inicio da sessao) ---
 
-export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+    Linux/Mac:
+    export _JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+    Windows PowerShell:
+    $env:_JAVA_OPTIONS="-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456"
+
+    Windows CMD:
+    set _JAVA_OPTIONS=-Djavax.net.ssl.trustStore=keystore.afonso -Djavax.net.ssl.trustStorePassword=123456
 
 
 --- PASSO 3: Criar ficheiros de teste ---
 
-echo "documento simples de duarte" > teste_simples.txt
-echo "documento cifrado de duarte" > teste_cifrado.txt
-echo "documento assinado de duarte" > teste_assinado.txt
-echo "documento envelope de duarte" > teste_envelope.txt
+    Linux/Mac:
+    echo "documento simples de duarte" > teste_simples.txt
+    echo "documento cifrado de duarte" > teste_cifrado.txt
+    echo "documento assinado de duarte" > teste_assinado.txt
+    echo "documento envelope de duarte" > teste_envelope.txt
+
+    Windows PowerShell:
+    "documento simples de duarte" | Out-File -Encoding utf8 teste_simples.txt
+    "documento cifrado de duarte" | Out-File -Encoding utf8 teste_cifrado.txt
+    "documento assinado de duarte" | Out-File -Encoding utf8 teste_assinado.txt
+    "documento envelope de duarte" | Out-File -Encoding utf8 teste_envelope.txt
+
+    Windows CMD:
+    echo documento simples de duarte > teste_simples.txt
+    echo documento cifrado de duarte > teste_cifrado.txt
+    echo documento assinado de duarte > teste_assinado.txt
+    echo documento envelope de duarte > teste_envelope.txt
 
 
 --- PASSO 4: Receber ficheiro simples enviado por Lima (-r) ---
@@ -291,6 +340,7 @@ DEMONSTRACAO DOS PONTOS A/B/C (correr no PC SERVIDOR, servidor ja a correr)
 --- Ponto A: Ver ficheiro de passwords ---
 
 cat server_storage/users
+(Windows PowerShell: Get-Content server_storage/users)
 (deve mostrar: username:funcao:salt:sintese)
 
 
@@ -298,7 +348,25 @@ cat server_storage/users
 (porta 9999 apenas para demonstracao, nao afeta o servidor real na 8080)
 
 echo MAC_ERRADA | java server.MySaudeServer 9999 keystore.afonso 123456
-(esperado: AVISO DE SEGURANCA: MAC INCORRETO! A terminar o servidor.)
+(esperado: AVISO DE SEGURANCA: O MAC do ficheiro de passwords esta INCORRETO!
+           O ficheiro 'users' pode ter sido adulterado. A terminar o servidor.)
+
+
+--- Ponto B: MAC inexistente no arranque (servidor deve terminar imediatamente) ---
+(renomear o ficheiro MAC temporariamente para simular ausencia)
+
+    Linux/Mac:
+    mv server_storage/mySaude.mac server_storage/mySaude.mac.bak
+    echo MAC_QUALQUER | java server.MySaudeServer 9999 keystore.afonso 123456
+    mv server_storage/mySaude.mac.bak server_storage/mySaude.mac
+
+    Windows PowerShell:
+    Rename-Item server_storage\mySaude.mac server_storage\mySaude.mac.bak
+    echo MAC_QUALQUER | java server.MySaudeServer 9999 keystore.afonso 123456
+    Rename-Item server_storage\mySaude.mac.bak server_storage\mySaude.mac
+
+(esperado: AVISO DE SEGURANCA: Ficheiro de MAC (mySaude.mac) nao encontrado!
+           A terminar o servidor por razoes de seguranca.)
 
 
 --- Ponto C: Username ja existente (deve dar erro) ---
